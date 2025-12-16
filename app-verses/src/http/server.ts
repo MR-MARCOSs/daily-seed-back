@@ -1,5 +1,5 @@
 import '@opentelemetry/auto-instrumentations-node/register'
-
+import { trace } from '@opentelemetry/api'
 import fastifyCors from "@fastify/cors";
 import fastify from "fastify";
 import z from "zod";
@@ -60,6 +60,8 @@ app.post('/verse', {
         to,
         text
     })
+
+    trace.getActiveSpan()?.setAttribute('book', book)
 
     return reply.status(201).send()
 });
