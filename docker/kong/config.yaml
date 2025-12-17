@@ -1,0 +1,32 @@
+_format_version: "3.0"
+_transform: true
+
+services: 
+  - name: verses
+    url: http://host.docker.internal:3333
+    protocol: http
+    host: host.docker.internal
+    port: 3333
+    path: /
+    routes:
+      - name: api
+        protocols:
+          - http
+          - https
+        paths:
+          - /verses
+
+plugins:
+  - name: cors
+    config:
+      origins: "*"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+      headers: 
+        - Accept
+        - Content-Type
+        - Authorization
+
