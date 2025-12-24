@@ -3,7 +3,7 @@ export interface VerseCreatedMessage {
     chapter: number,
     lesson: string,
     from: number,
-    to: number,
+    to?: number,
     text: string,
     approved: boolean
     
