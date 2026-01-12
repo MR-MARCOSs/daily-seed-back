@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import { db } from '../db/client.ts';
 import { users } from '../db/schema/users.ts';
 import { eq } from 'drizzle-orm';
-import { jwtService, JWTPayload } from './jwt.ts';
+import { jwtService, type JWTPayload } from './jwt.ts';
 
 export class AuthService {
   async register(name: string, password: string, role?: string) {

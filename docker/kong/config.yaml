@@ -2,33 +2,107 @@ _format_version: "3.0"
 _transform: true
 
 services: 
-  - name: verses
+  - name: verses-service
     url: http://host.docker.internal:3333
-    protocol: http
-    host: host.docker.internal
-    port: 3333
-    path: /
     connect_timeout: 10000
     retries: 3
     routes:
-      - name: api
+      - name: public-api
         protocols:
           - http
           - https
         paths:
-          - /verses
+          - /health
+          - /verse
+          # CORREÇÃO 1: Removido "/.*". "/auth" já pega tudo que começa com /auth
+          - /auth 
+        # CORREÇÃO 2: Mudei para false. Se o Fastify espera "/verse", o Kong não pode remover isso.
+        strip_path: false
+        plugins:
+          - name: cors
+            config:
+              # CORREÇÃO 3: Origins agora é uma lista (array)
+              origins: 
+                - "*"
+              methods:
+                - GET
+                - POST
+                - PUT
+                - DELETE
+              headers: 
+                - Accept
+                - Content-Type
+                - Authorization
+              credentials: true
+              exposed_headers:
+                - Authorization
+                - Set-Cookie
+                - X-Token-Expiry
+              max_age: 3600
 
-plugins:
-  - name: cors
-    config:
-      origins: "*"
-      methods:
-        - GET
-        - POST
-        - PUT
-        - DELETE
-      headers: 
-        - Accept
-        - Content-Type
-        - Authorization
+      - name: protected-api
+        protocols:
+          - http
+          - https
+        paths:
+          - /admin
+          - /profile
+        strip_path: false # CORREÇÃO: false para manter o caminho original
+        plugins:
+          - name: jwt
+            config:
+              secret_is_base64: false
+              cookie_names:
+                - access_token
+              run_on_preflight: true
+              claims_to_verify:
+                - exp
+                - nbf
+              maximum_expiration: 3600
+              header_names:
+                - authorization
 
+          - name: cors
+            config:
+              # CORREÇÃO: Origins agora é uma lista
+              origins: 
+                - "*"
+              methods:
+                - GET
+                - POST
+                - PUT
+                - DELETE
+                - PATCH
+                - OPTIONS
+              headers: 
+                - Accept
+                - Content-Type
+                - Authorization
+                - X-Requested-With
+              credentials: true
+              exposed_headers:
+                - Authorization
+                - X-Token-Expiry
+                - X-RateLimit-Limit
+                - X-RateLimit-Remaining
+              max_age: 3600
+
+# (Opcional) Removi o segundo serviço 'auth-consumers' pois era redundante, 
+# já que aponta para a mesma URL e a rota de /auth já foi incluída acima.
+
+consumers:
+  - username: admin-api
+    custom_id: admin-consumer-001
+    jwt_secrets:
+      - key: admin-key
+        algorithm: HS256
+        secret: '22WKGprJd\mjwic<pdnqB9YRmJn[T`;nStz@zry@bhg%UN+9@0!5glk>!^Yej0pi'
+        rsa_public_key: null
+
+  - username: mobile-app
+    custom_id: mobile-consumer-001
+    jwt_secrets:
+      - key: mobile-key
+        algorithm: HS256
+        secret: '22WKGprJd\mjwic<pdnqB9YRmJn[T`;nStz@zry@bhg%UN+9@0!5glk>!^Yej0pi'
+        rsa_public_key: null
