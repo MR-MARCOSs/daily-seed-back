@@ -86,22 +86,35 @@ services:
                 - X-RateLimit-Remaining
               max_age: 3600
 
-
-
-
 consumers:
   - username: admin-api
     custom_id: admin-consumer-001
     jwt_secrets:
       - key: admin-key
-        algorithm: HS256
-        secret: '22WKGprJd\mjwic<pdnqB9YRmJn[T`;nStz@zry@bhg%UN+9@0!5glk>!^Yej0pi'
-        rsa_public_key: null
+        algorithm: RS256
+        rsa_public_key: |
+          -----BEGIN PUBLIC KEY-----
+          MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA262uflAOg8Ela7dwEIvk
+          OXZp1Y94bfsFtfo6q6l5Ya7LbPvz8g9Ex50oiHdJ8Vu1NSrYwQ30mZdfSG1e+/3Z
+          6lWcxrZtQd2SMIBkN/+I6KI/mUgHJfqoPUVqQqt2GzkG4cN3ERE8ozrR+gkRzz8f
+          9Cx/Z9eCqOFhCqb7HQxy3MZ0omjSGKUr68nx2muM5bYqNQ4s1A94AK80vPnR6Pin
+          H9Ks/EFyCBzypcuK4STYWUgUYMabZKpZlRZY1L2ME8tJ/tkZ3FMJQzDkdR9bQegA
+          /T5lhiZNc4KtORho0AeDbd4tx5hiDixhcnauh488BkIw02MlW2orz6DrXEmlJZfW
+          lQIDAQAB
+          -----END PUBLIC KEY-----
 
   - username: mobile-app
     custom_id: mobile-consumer-001
     jwt_secrets:
       - key: mobile-key
-        algorithm: HS256
-        secret: '22WKGprJd\mjwic<pdnqB9YRmJn[T`;nStz@zry@bhg%UN+9@0!5glk>!^Yej0pi'
-        rsa_public_key: null
+        algorithm: RS256
+        rsa_public_key: |
+          -----BEGIN PUBLIC KEY-----
+          MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA262uflAOg8Ela7dwEIvk
+          OXZp1Y94bfsFtfo6q6l5Ya7LbPvz8g9Ex50oiHdJ8Vu1NSrYwQ30mZdfSG1e+/3Z
+          6lWcxrZtQd2SMIBkN/+I6KI/mUgHJfqoPUVqQqt2GzkG4cN3ERE8ozrR+gkRzz8f
+          9Cx/Z9eCqOFhCqb7HQxy3MZ0omjSGKUr68nx2muM5bYqNQ4s1A94AK80vPnR6Pin
+          H9Ks/EFyCBzypcuK4STYWUgUYMabZKpZlRZY1L2ME8tJ/tkZ3FMJQzDkdR9bQegA
+          /T5lhiZNc4KtORho0AeDbd4tx5hiDixhcnauh488BkIw02MlW2orz6DrXEmlJZfW
+          lQIDAQAB
+          -----END PUBLIC KEY-----
