@@ -15,32 +15,48 @@ export interface TokenPair {
 }
 
 export class JWTService {
-  private readonly ACCESS_SECRET: string;
-  private readonly REFRESH_SECRET: string;
-  private readonly ACCESS_EXPIRES_IN = '15m'; // Token curto
-  private readonly REFRESH_EXPIRES_IN = '7d'; // Token longo para renovação
+  
+  private readonly PRIVATE_KEY: string;
+  private readonly PUBLIC_KEY: string;
+  
+  private readonly ACCESS_EXPIRES_IN = '15m'; 
+  private readonly REFRESH_EXPIRES_IN = '7d'; 
 
   constructor() {
-    // Em produção, use variáveis de ambiente seguras
-    this.ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || 'your-super-secret-access-key-change-in-production';
-    this.REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-super-secret-refresh-key-change-in-production';
+    this.PRIVATE_KEY = (process.env.JWT_PRIVATE_KEY || '').replace(/\\n/g, '\n');
+    this.PUBLIC_KEY = (process.env.JWT_PUBLIC_KEY || '').replace(/\\n/g, '\n');
     
-    if (!this.ACCESS_SECRET || !this.REFRESH_SECRET) {
-      throw new Error('JWT secrets must be defined in environment variables');
+    if (!this.PRIVATE_KEY || !this.PUBLIC_KEY) {
+      throw new Error('JWT keys (Private/Public) must be defined in environment variables');
     }
   }
 
   generateTokens(payload: JWTPayload): TokenPair {
+    const issuer = payload.role === 'admin' ? 'admin-key' : 'mobile-key';    
     const accessToken = jwt.sign(
-      { ...payload, type: 'access' },
-      this.ACCESS_SECRET,
-      { expiresIn: this.ACCESS_EXPIRES_IN }
+      { 
+        ...payload, 
+        type: 'access',
+        iss: issuer 
+      },
+      this.PRIVATE_KEY, 
+      { 
+        expiresIn: this.ACCESS_EXPIRES_IN,
+        algorithm: 'RS256' 
+      }
     );
 
     const refreshToken = jwt.sign(
-      { ...payload, type: 'refresh' },
-      this.REFRESH_SECRET,
-      { expiresIn: this.REFRESH_EXPIRES_IN }
+      { 
+        ...payload, 
+        type: 'refresh',
+        iss: issuer 
+      },
+      this.PRIVATE_KEY,
+      { 
+        expiresIn: this.REFRESH_EXPIRES_IN,
+        algorithm: 'RS256'
+      }
     );
 
     return { accessToken, refreshToken };
@@ -48,7 +64,9 @@ export class JWTService {
 
   verifyAccessToken(token: string): JWTPayload | null {
     try {
-      const decoded = jwt.verify(token, this.ACCESS_SECRET) as JWTPayload & { type: string };
+      
+      const decoded = jwt.verify(token, this.PUBLIC_KEY, { algorithms: ['RS256'] }) as JWTPayload & { type: string };
+      
       if (decoded.type !== 'access') {
         throw new Error('Invalid token type');
       }
@@ -60,7 +78,7 @@ export class JWTService {
 
   verifyRefreshToken(token: string): JWTPayload | null {
     try {
-      const decoded = jwt.verify(token, this.REFRESH_SECRET) as JWTPayload & { type: string };
+      const decoded = jwt.verify(token, this.PUBLIC_KEY, { algorithms: ['RS256'] }) as JWTPayload & { type: string };
       if (decoded.type !== 'refresh') {
         throw new Error('Invalid token type');
       }
@@ -69,7 +87,6 @@ export class JWTService {
       return null;
     }
   }
-
   decodeToken(token: string): JWTPayload | null {
     try {
       return jwt.decode(token) as JWTPayload;

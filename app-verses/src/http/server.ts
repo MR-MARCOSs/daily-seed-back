@@ -22,25 +22,22 @@ const app = fastify().withTypeProvider<ZodTypeProvider>();
 app.setSerializerCompiler(serializerCompiler);
 app.setValidatorCompiler(validatorCompiler);
 
-// Registre o plugin de cookies PRIMEIRO
 app.register(fastifyCookie, {
-  secret: process.env.COOKIE_SECRET || 'your-cookie-secret-key-change-in-production',
+  secret: process.env.COOKIE_SECRET,
   hook: 'onRequest',
 });
 
 app.register(fastifyCors, {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true, // Importante para cookies
+  origin: process.env.FRONTEND_URL,
+  credentials: true, 
 });
 
-// Defina tipos para o Fastify com cookies
 declare module 'fastify' {
   interface FastifyRequest {
     user?: JWTPayload;
   }
 }
 
-// Rotas de Autenticação
 app.post('/auth/register', {
   schema: {
     body: z.object({
@@ -74,16 +71,14 @@ app.post('/auth/login', {
     const { name, password } = request.body;
     const result = await authService.login(name, password);
     
-    // Configura cookies seguros
     reply.setCookie('refresh_token', result.tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax', // ou 'strict' dependendo da sua configuração
+      sameSite: 'lax', 
       path: '/auth/refresh',
-      maxAge: 7 * 24 * 60 * 60, // 7 dias em segundos
+      maxAge: 7 * 24 * 60 * 60, 
     });
     
-    // Opcional: também pode enviar como response body
     return reply.send({
       user: result.user,
       accessToken: result.tokens.accessToken,
@@ -98,7 +93,7 @@ app.post('/auth/login', {
 
 app.post('/auth/refresh', async (request, reply) => {
   try {
-    // Agora você pode acessar cookies via request.cookies
+    
     const refreshToken = request.cookies.refresh_token;
     
     if (!refreshToken) {
@@ -110,7 +105,6 @@ app.post('/auth/refresh', async (request, reply) => {
     
     const tokens = await authService.refreshTokens(refreshToken);
     
-    // Atualiza cookie do refresh token
     reply.setCookie('refresh_token', tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -123,7 +117,7 @@ app.post('/auth/refresh', async (request, reply) => {
       accessToken: tokens.accessToken,
     });
   } catch (error: any) {
-    // Em caso de erro, limpa o cookie
+    
     reply.clearCookie('refresh_token', {
       path: '/auth/refresh',
     });
@@ -143,7 +137,6 @@ app.post('/auth/logout', {
       await authService.logout(request.user.userId);
     }
     
-    // Limpa cookie do refresh token
     reply.clearCookie('refresh_token', {
       path: '/auth/refresh',
     });
@@ -157,7 +150,6 @@ app.post('/auth/logout', {
   }
 });
 
-// Health check
 app.get('/health', () => {
   return 'OK';
 });
@@ -243,7 +235,6 @@ app.get('/verse', async (request, reply) => {
   }
 });
 
-// ROTA PROTEGIDA: Versículos não aprovados (apenas admin/moderator)
 app.get('/admin/verses/pending', {
   preHandler: [authenticate],
 }, async (request: AuthenticatedRequest, reply) => {
@@ -284,7 +275,6 @@ app.get('/admin/verses/pending', {
   }
 });
 
-// ROTA PROTEGIDA: Aprovar/rejeitar versículo
 app.patch('/admin/verses/:id/approve', {
   preHandler: [authenticate],
   schema: {
@@ -300,8 +290,6 @@ app.patch('/admin/verses/:id/approve', {
   try {
     const { id } = request.params as any;
     const { approved, rejectionReason } = request.body as any;
-    
-    // Busca o versículo
     const [verse] = await db
       .select()
       .from(schema.verses)
@@ -315,7 +303,6 @@ app.patch('/admin/verses/:id/approve', {
       });
     }
 
-    // Atualiza o status
     await db
       .update(schema.verses)
       .set({
@@ -335,7 +322,6 @@ app.patch('/admin/verses/:id/approve', {
   }
 });
 
-// Rota de perfil do usuário autenticado
 app.get('/profile', {
   preHandler: [authenticate],
 }, async (request: AuthenticatedRequest, reply) => {

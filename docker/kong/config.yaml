@@ -14,14 +14,14 @@ services:
         paths:
           - /health
           - /verse
-          # CORREÇÃO 1: Removido "/.*". "/auth" já pega tudo que começa com /auth
+          
           - /auth 
-        # CORREÇÃO 2: Mudei para false. Se o Fastify espera "/verse", o Kong não pode remover isso.
+        
         strip_path: false
         plugins:
           - name: cors
             config:
-              # CORREÇÃO 3: Origins agora é uma lista (array)
+              
               origins: 
                 - "*"
               methods:
@@ -47,7 +47,7 @@ services:
         paths:
           - /admin
           - /profile
-        strip_path: false # CORREÇÃO: false para manter o caminho original
+        strip_path: false 
         plugins:
           - name: jwt
             config:
@@ -57,14 +57,13 @@ services:
               run_on_preflight: true
               claims_to_verify:
                 - exp
-                - nbf
               maximum_expiration: 3600
               header_names:
                 - authorization
 
           - name: cors
             config:
-              # CORREÇÃO: Origins agora é uma lista
+              
               origins: 
                 - "*"
               methods:
@@ -87,8 +86,8 @@ services:
                 - X-RateLimit-Remaining
               max_age: 3600
 
-# (Opcional) Removi o segundo serviço 'auth-consumers' pois era redundante, 
-# já que aponta para a mesma URL e a rota de /auth já foi incluída acima.
+
+
 
 consumers:
   - username: admin-api
