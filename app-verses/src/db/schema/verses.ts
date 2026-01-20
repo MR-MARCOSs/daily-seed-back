@@ -1,4 +1,4 @@
-import { pgTable, text, integer, serial, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, serial, boolean, timestamp } from "drizzle-orm/pg-core";
 
 export const verses = pgTable('verses', {
     id: serial("id").primaryKey(),
@@ -8,6 +8,7 @@ export const verses = pgTable('verses', {
     lesson: text().notNull(),
     from: integer().notNull(),
     to: integer(),
-    approved: boolean().default(false)
+    approved: boolean().default(false),
+    createdAt: timestamp('created_at').defaultNow().notNull() 
 })
 
