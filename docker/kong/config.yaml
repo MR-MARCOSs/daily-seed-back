@@ -3,7 +3,7 @@ _transform: true
 
 services: 
   - name: verses-service
-    url: http://host.docker.internal:3333
+    url: http://verses-backend:3333
     connect_timeout: 10000
     retries: 3
     routes:
@@ -14,16 +14,14 @@ services:
         paths:
           - /health
           - /verse
-          
+          - /bible/range
           - /auth 
-        
         strip_path: false
         plugins:
           - name: cors
             config:
-              
               origins: 
-                - "*"
+                - https://daily-seed-gilt.vercel.app
               methods:
                 - GET
                 - POST
@@ -63,9 +61,8 @@ services:
 
           - name: cors
             config:
-              
               origins: 
-                - "*"
+                - https://daily-seed-gilt.vercel.app
               methods:
                 - GET
                 - POST

@@ -1,6 +1,5 @@
 import '@opentelemetry/auto-instrumentations-node/register';
 import { trace } from '@opentelemetry/api';
-import fastifyCors from '@fastify/cors';
 import fastifyCookie from '@fastify/cookie';
 import fastify from 'fastify';
 import z from 'zod';
@@ -17,6 +16,7 @@ import { sql, eq } from 'drizzle-orm';
 import { authenticate,  type AuthenticatedRequest} from '../auth/middleware.ts';
 import { authService } from '../auth/auth-service.ts';
 import { jwtService, type JWTPayload } from '../auth/jwt.ts';
+import { externalBibleService } from '../services/external-bible.ts';
 
 const app = fastify().withTypeProvider<ZodTypeProvider>();
 app.setSerializerCompiler(serializerCompiler);
@@ -27,37 +27,32 @@ app.register(fastifyCookie, {
   hook: 'onRequest',
 });
 
-app.register(fastifyCors, {
-  origin: process.env.FRONTEND_URL,
-  credentials: true, 
-});
-
 declare module 'fastify' {
   interface FastifyRequest {
     user?: JWTPayload;
   }
 }
 
-app.post('/auth/register', {
-  schema: {
-    body: z.object({
-      name: z.string(),
-      password: z.string().min(6),
-      role: z.string().optional(),
-    }),
-  },
-}, async (request, reply) => {
-  try {
-    const { name, password, role } = request.body;
-    const result = await authService.register(name, password, role);
-    return reply.status(201).send(result);
-  } catch (error: any) {
-    return reply.status(400).send({
-      error: error.message,
-      code: 'REGISTRATION_ERROR',
-    });
-  }
-});
+// app.post('/auth/register', {
+//   schema: {
+//     body: z.object({
+//       name: z.string(),
+//       password: z.string().min(6),
+//       role: z.string().optional(),
+//     }),
+//   },
+// }, async (request, reply) => {
+//   try {
+//     const { name, password, role } = request.body;
+//     const result = await authService.register(name, password, role);
+//     return reply.status(201).send(result);
+//   } catch (error: any) {
+//     return reply.status(400).send({
+//       error: error.message,
+//       code: 'REGISTRATION_ERROR',
+//     });
+//   }
+// });
 
 app.post('/auth/login', {
   schema: {
@@ -154,7 +149,6 @@ app.get('/health', () => {
   return 'OK';
 });
 
-// Rota pública para criar versículos
 app.post('/verse', {
   schema: {
     body: z.object({
@@ -193,7 +187,6 @@ app.post('/verse', {
   return reply.status(201).send();
 });
 
-// Rota pública para versículo aleatório aprovado
 app.get('/verse', async (request, reply) => {
   try {
     const maxResult = await db
@@ -283,13 +276,14 @@ app.patch('/admin/verses/:id/approve', {
     }),
     body: z.object({
       approved: z.boolean(),
-      rejectionReason: z.string().optional(),
+      lesson: z.string().optional(),
     }),
   },
 }, async (request: AuthenticatedRequest, reply) => {
   try {
     const { id } = request.params as any;
-    const { approved, rejectionReason } = request.body as any;
+    const { approved, lesson } = request.body as any;
+    
     const [verse] = await db
       .select()
       .from(schema.verses)
@@ -303,20 +297,33 @@ app.patch('/admin/verses/:id/approve', {
       });
     }
 
-    await db
-      .update(schema.verses)
-      .set({
-        approved,
-      })
-      .where(eq(schema.verses.id, id));
-
-    return reply.send({
-      message: approved ? 'Versículo aprovado com sucesso' : 'Versículo rejeitado com sucesso',
-    });
+    if (approved) {
+      const updateData: any = { approved: true };
+      if (lesson) {
+        updateData.lesson = lesson;
+      }
+      
+      await db
+        .update(schema.verses)
+        .set(updateData)
+        .where(eq(schema.verses.id, id));
+        
+      return reply.send({
+        message: 'Versículo aprovado com sucesso',
+      });
+    } else {
+      await db
+        .delete(schema.verses)
+        .where(eq(schema.verses.id, id));
+        
+      return reply.send({
+        message: 'Versículo rejeitado e removido do banco de dados',
+      });
+    }
   } catch (error) {
-    console.error('Erro ao atualizar versículo:', error);
+    console.error('Erro ao processar versículo:', error);
     return reply.status(500).send({
-      error: 'Erro ao atualizar versículo',
+      error: 'Erro ao processar versículo',
       code: 'SERVER_ERROR',
     });
   }
@@ -339,6 +346,42 @@ app.get('/profile', {
       error: 'Erro ao buscar perfil',
       code: 'SERVER_ERROR',
     });
+  }
+});
+
+app.get('/bible/range/:book/:chapter', {
+  schema: {
+    params: z.object({
+      book: z.string(),
+      chapter: z.coerce.number().min(1),
+    }),
+    querystring: z.object({
+      from: z.coerce.number().min(1),
+      to: z.coerce.number().min(1).optional(),
+    }).refine((data) => {
+
+      if (!data.to) return true;
+      return data.to >= data.from;
+    }, {
+      message: "O versículo final (to) deve ser maior ou igual ao inicial (from)",
+      path: ["to"],
+    }),
+  },
+}, async (request, reply) => {
+  const { book, chapter } = request.params;
+  const { from, to } = request.query;
+
+  try {
+    const result = await externalBibleService.getVersesRange(book, chapter, from, to);
+
+    if (!result) {
+      return reply.status(404).send({ error: 'Versículos não encontrados.' });
+    }
+
+    return reply.send(result);
+
+  } catch (error) {
+    return reply.status(502).send({ error: 'Erro externo.' });
   }
 });
 
