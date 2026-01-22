@@ -1,11 +1,36 @@
+version: '3.8'
 services:
   pg:
     image: bitnami/postgresql:latest
+    container_name: verses-db
     ports:
-      - '5482:5432'
+      - '5432:5432'
     environment:
-      - POSTGRES_USER=docker
-      - POSTGRES_PASSWORD=docker
-      - POSTGRES_DB=verses
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     volumes:
       - ./docker:/docker-entrypoint-initdb.d
+      - pg_data:/bitnami/postgresql
+    networks:
+      - verses-network
+  app:
+    build: .  
+    container_name: verses-backend
+    restart: always
+    environment:
+      - DB_HOST=verses-db      
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASS=${POSTGRES_PASSWORD}
+      - RABBIT_HOST=broker     
+      - JAEGER_HOST=jaeger     
+    networks:
+      - verses-network
+
+volumes:
+  pg_data:
+
+networks:
+  verses-network:
+    external: true
