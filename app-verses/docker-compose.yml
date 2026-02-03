@@ -1,4 +1,5 @@
 version: '3.8'
+
 services:
   pg:
     image: bitnami/postgresql:latest
@@ -14,19 +15,42 @@ services:
       - pg_data:/bitnami/postgresql
     networks:
       - verses-network
+    
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   app:
-    build: .  
+    build: .
     container_name: verses-backend
     restart: always
     environment:
-      - DB_HOST=verses-db      
+      - NODE_ENV=production
+      
+      - DATABASE_URL=${DATABASE_URL}
+      - BROKER_URL=${BROKER_URL}
+      - DB_HOST=verses-db
       - DB_PORT=5432
-      - DB_USER=${POSTGRES_USER}
-      - DB_PASS=${POSTGRES_PASSWORD}
-      - RABBIT_HOST=broker     
-      - JAEGER_HOST=jaeger     
+      - JWT_PRIVATE_KEY=${JWT_PRIVATE_KEY}
+      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
+      - COOKIE_SECRET=${COOKIE_SECRET}
+      - ADMIN_NAME=${ADMIN_NAME}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - ABIBLIA_DIGITAL_URL=${ABIBLIA_DIGITAL_URL}
+      - ABIBLIA_DIGITAL_TOKEN=${ABIBLIA_DIGITAL_TOKEN}
+      - OTEL_TRACES_EXPORTER=${OTEL_TRACES_EXPORTER}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
+      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
+      - OTEL_NODE_ENABLED_INSTRUMENTATIONS=${OTEL_NODE_ENABLED_INSTRUMENTATIONS}
     networks:
       - verses-network
+    
+    depends_on:
+      pg:
+        condition: service_healthy
 
 volumes:
   pg_data:
