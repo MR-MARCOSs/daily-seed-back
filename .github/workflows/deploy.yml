@@ -38,8 +38,8 @@ jobs:
             cd app-verses
             
             # Força o rebuild para pegar dependências novas e código novo
-            docker compose up -d --build
-
+            docker compose up -d --build --force-recreate
+            
             # 5. Limpeza de disco (Importante na Oracle Cloud Free Tier!)
             # Remove imagens antigas (dangling) e cache de build para não lotar o HD
             echo "🧹 Limpando imagens antigas..."

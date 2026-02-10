@@ -53,7 +53,7 @@ declare module 'fastify' {
 //     });
 //   }
 // });
-// teste
+// teste222
 
 app.post('/auth/login', {
   schema: {
