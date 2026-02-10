@@ -1,0 +1,46 @@
+name: Deploy to Oracle Cloud
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          script: |
+            # 1. Navegar até a pasta do projeto
+            cd ~/app-backend
+
+            # 2. Garantir que temos o código mais recente
+            echo "⬇️ Baixando atualizações..."
+            git pull origin master
+
+            # 3. Atualizar Infraestrutura (Raiz)
+            # Caso você mude algo no Rabbit/Kong/Jaeger
+            echo "🔄 Atualizando Infraestrutura..."
+            docker compose up -d
+
+            # 4. Atualizar Backend (App)
+            echo "🚀 Construindo e Iniciando Backend..."
+            cd app-verses
+            
+            # Força o rebuild para pegar dependências novas e código novo
+            docker compose up -d --build
+
+            # 5. Limpeza de disco (Importante na Oracle Cloud Free Tier!)
+            # Remove imagens antigas (dangling) e cache de build para não lotar o HD
+            echo "🧹 Limpando imagens antigas..."
+            docker image prune -f
